@@ -146,43 +146,56 @@ async def analyze_zip_files(
     new_zip: UploadFile = File(...),
     old_zip: UploadFile = File(None),
 ):
-    # 🔍 new_zip 검사
-    new_bytes = await new_zip.read()
-    if not is_zip_safe(new_bytes):
-        raise HTTPException(status_code=400, detail="new_zip 압축 해제 용량 초과")
-    if has_too_many_files(new_bytes):
-        raise HTTPException(status_code=400, detail="new_zip 파일 수 초과")
-    if has_dangerous_files(new_bytes):
-        raise HTTPException(status_code=400, detail="new_zip에 위험한 파일이 포함됨")
+    try:
+        # 🔍 new_zip 검사
+        if not new_zip:
+            raise HTTPException(status_code=400, detail="new_zip 파일이 필요합니다")
+        
+        new_bytes = await new_zip.read()
+        if not new_bytes:
+            raise HTTPException(status_code=400, detail="new_zip 파일이 비어있습니다")
+            
+        if not is_zip_safe(new_bytes):
+            raise HTTPException(status_code=400, detail="new_zip 압축 해제 용량 초과")
+        if has_too_many_files(new_bytes):
+            raise HTTPException(status_code=400, detail="new_zip 파일 수 초과")
+        if has_dangerous_files(new_bytes):
+            raise HTTPException(status_code=400, detail="new_zip에 위험한 파일이 포함됨")
 
-    # ✅ 주요 정보 추출
-    new_followers, new_following = extract_usernames_from_zip(new_bytes)
-    recently_unfollowed = extract_recently_unfollowed(new_bytes)
-    blocked_users = extract_blocked_users(new_bytes)
-    pending_requests = extract_pending_requests(new_bytes)
+        # ✅ 주요 정보 추출
+        new_followers, new_following = extract_usernames_from_zip(new_bytes)
+        recently_unfollowed = extract_recently_unfollowed(new_bytes)
+        blocked_users = extract_blocked_users(new_bytes)
+        pending_requests = extract_pending_requests(new_bytes)
 
-    # 🔍 old_zip 비교
-    if old_zip:
-        old_bytes = await old_zip.read()
-        if not is_zip_safe(old_bytes):
-            raise HTTPException(status_code=400, detail="old_zip 압축 해제 용량 초과")
-        if has_too_many_files(old_bytes):
-            raise HTTPException(status_code=400, detail="old_zip 파일 수 초과")
-        if has_dangerous_files(old_bytes):
-            raise HTTPException(status_code=400, detail="old_zip에 위험한 파일이 포함됨")
-        old_followers, _ = extract_usernames_from_zip(old_bytes)
-        unfollowers = sorted(list(old_followers - new_followers))
-    else:
-        unfollowers = []
+        # 🔍 old_zip 비교
+        if old_zip:
+            old_bytes = await old_zip.read()
+            if not is_zip_safe(old_bytes):
+                raise HTTPException(status_code=400, detail="old_zip 압축 해제 용량 초과")
+            if has_too_many_files(old_bytes):
+                raise HTTPException(status_code=400, detail="old_zip 파일 수 초과")
+            if has_dangerous_files(old_bytes):
+                raise HTTPException(status_code=400, detail="old_zip에 위험한 파일이 포함됨")
+            old_followers, _ = extract_usernames_from_zip(old_bytes)
+            unfollowers = sorted(list(old_followers - new_followers))
+        else:
+            unfollowers = []
 
-    # ✅ 맞팔하지 않는 계정 계산
-    not_following_back = sorted(list(new_following - new_followers))
+        # ✅ 맞팔하지 않는 계정 계산
+        not_following_back = sorted(list(new_following - new_followers))
 
-    # ✅ 반환 결과
-    return {
-        "unfollowers": unfollowers,
-        "not_following_back": not_following_back,
-        "recently_unfollowed": recently_unfollowed,
-        "blocked_users": blocked_users,
-        "pending_requests": pending_requests
-    }
+        # ✅ 반환 결과
+        return {
+            "unfollowers": unfollowers,
+            "not_following_back": not_following_back,
+            "recently_unfollowed": recently_unfollowed,
+            "blocked_users": blocked_users,
+            "pending_requests": pending_requests
+        }
+    except HTTPException:
+        # HTTPException은 그대로 재발생
+        raise
+    except Exception as e:
+        print(f"Error in analyze endpoint: {e}")
+        raise HTTPException(status_code=500, detail=f"서버 내부 오류: {str(e)}")
