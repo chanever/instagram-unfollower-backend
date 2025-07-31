@@ -21,23 +21,32 @@ app.add_middleware(
 # ✅ Origin 검증 미들웨어
 @app.middleware("http")
 async def validate_origin_middleware(request: Request, call_next):
-    origin = request.headers.get("origin")
-    allowed_origins = [
-        "https://insta-dive.com",
-        "https://www.insta-dive.com",
-        "http://localhost:5173",
-        "http://localhost:4173"
-    ]
-    
-    # POST 요청에 대해서만 origin 검증
-    if request.method == "POST" and origin and origin not in allowed_origins:
-        raise HTTPException(
-            status_code=403, 
-            detail="Forbidden origin"
+    try:
+        origin = request.headers.get("origin")
+        allowed_origins = [
+            "https://insta-dive.com",
+            "https://www.insta-dive.com",
+            "http://localhost:5173",
+            "http://localhost:4173"
+        ]
+        
+        # POST 요청에 대해서만 origin 검증
+        if request.method == "POST" and origin and origin not in allowed_origins:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "Forbidden origin"}
+            )
+        
+        response = await call_next(request)
+        return response
+    except Exception as e:
+        # 예외가 발생해도 서버가 종료되지 않도록 처리
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error"}
         )
-    
-    response = await call_next(request)
-    return response
 
 # ✅ 헬스체크 엔드포인트
 @app.get("/")
