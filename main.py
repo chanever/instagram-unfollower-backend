@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 import zipfile, io, json
 
@@ -7,11 +7,42 @@ app = FastAPI()
 # ✅ CORS 설정 (React 등 프론트에서 호출 가능하게)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 운영 시 도메인 제한 권장
+    allow_origins=[
+        "https://insta-dive.com",
+        "https://www.insta-dive.com",
+        "http://localhost:5173",  # 개발 환경
+        "http://localhost:4173"   # 빌드 미리보기
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+# ✅ Origin 검증 미들웨어
+@app.middleware("http")
+async def validate_origin_middleware(request: Request, call_next):
+    origin = request.headers.get("origin")
+    allowed_origins = [
+        "https://insta-dive.com",
+        "https://www.insta-dive.com",
+        "http://localhost:5173",
+        "http://localhost:4173"
+    ]
+    
+    # POST 요청에 대해서만 origin 검증
+    if request.method == "POST" and origin and origin not in allowed_origins:
+        raise HTTPException(
+            status_code=403, 
+            detail="Forbidden origin"
+        )
+    
+    response = await call_next(request)
+    return response
+
+# ✅ 헬스체크 엔드포인트
+@app.get("/")
+async def health_check():
+    return {"status": "healthy", "message": "InstaDive API is running"}
 
 # ✅ 보안 설정
 MAX_SIZE = 50 * 1024 * 1024  # 압축 해제 용량 제한 (50MB)
