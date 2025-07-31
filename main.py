@@ -23,6 +23,7 @@ app.add_middleware(
 async def validate_origin_middleware(request: Request, call_next):
     try:
         origin = request.headers.get("origin")
+        user_agent = request.headers.get("user-agent", "")
         allowed_origins = [
             "https://insta-dive.com",
             "https://www.insta-dive.com",
@@ -30,17 +31,34 @@ async def validate_origin_middleware(request: Request, call_next):
             "http://localhost:4173"
         ]
         
+        # 디버깅을 위한 로깅
+        print(f"Request: {request.method} {request.url.path}")
+        print(f"Origin: {origin}")
+        print(f"User-Agent: {user_agent[:100]}...")
+        
         # POST 요청에 대해서만 origin 검증
-        if request.method == "POST" and origin and origin not in allowed_origins:
-            from fastapi.responses import JSONResponse
-            return JSONResponse(
-                status_code=403,
-                content={"detail": "Forbidden origin"}
-            )
+        if request.method == "POST":
+            if not origin:
+                print("No origin header found")
+                from fastapi.responses import JSONResponse
+                return JSONResponse(
+                    status_code=403,
+                    content={"detail": "No origin header"}
+                )
+            elif origin not in allowed_origins:
+                print(f"Origin {origin} not in allowed list: {allowed_origins}")
+                from fastapi.responses import JSONResponse
+                return JSONResponse(
+                    status_code=403,
+                    content={"detail": f"Forbidden origin: {origin}"}
+                )
+            else:
+                print(f"Origin {origin} is allowed")
         
         response = await call_next(request)
         return response
     except Exception as e:
+        print(f"Error in origin middleware: {e}")
         # 예외가 발생해도 서버가 종료되지 않도록 처리
         from fastapi.responses import JSONResponse
         return JSONResponse(
