@@ -18,42 +18,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ Origin 검증 미들웨어
+# ✅ Origin 검증 미들웨어 (일시적으로 완화)
 @app.middleware("http")
 async def validate_origin_middleware(request: Request, call_next):
     try:
         origin = request.headers.get("origin")
         user_agent = request.headers.get("user-agent", "")
-        allowed_origins = [
-            "https://insta-dive.com",
-            "https://www.insta-dive.com",
-            "http://localhost:5173",
-            "http://localhost:4173"
-        ]
         
         # 디버깅을 위한 로깅
         print(f"Request: {request.method} {request.url.path}")
         print(f"Origin: {origin}")
         print(f"User-Agent: {user_agent[:100]}...")
         
-        # POST 요청에 대해서만 origin 검증
-        if request.method == "POST":
-            if not origin:
-                print("No origin header found")
-                from fastapi.responses import JSONResponse
-                return JSONResponse(
-                    status_code=403,
-                    content={"detail": "No origin header"}
-                )
-            elif origin not in allowed_origins:
-                print(f"Origin {origin} not in allowed list: {allowed_origins}")
-                from fastapi.responses import JSONResponse
-                return JSONResponse(
-                    status_code=403,
-                    content={"detail": f"Forbidden origin: {origin}"}
-                )
-            else:
-                print(f"Origin {origin} is allowed")
+        # 일시적으로 모든 origin 허용 (디버깅용)
+        print(f"Allowing request from origin: {origin}")
         
         response = await call_next(request)
         return response
