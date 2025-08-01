@@ -164,3 +164,21 @@ async def analyze_zip_files(
         "blocked_users": blocked_users,
         "pending_requests": pending_requests
     }
+
+# ✅ 서버 실행 설정 (Render 호환성)
+if __name__ == "__main__":
+    import uvicorn
+    import os
+    
+    # Render 환경변수에서 포트 가져오기 (기본값: 10000)
+    port = int(os.environ.get("PORT", 10000))
+    
+    # 0.0.0.0으로 바인딩하여 모든 인터페이스에서 접근 가능
+    uvicorn.run(
+        "main:app", 
+        host="0.0.0.0", 
+        port=port, 
+        reload=False,
+        timeout_keep_alive=120,  # Keep-alive 타임아웃 증가
+        timeout_graceful_shutdown=30  # Graceful shutdown 타임아웃
+    )
