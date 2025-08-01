@@ -7,9 +7,10 @@ app = FastAPI()
 # ✅ CORS 설정 (React 등 프론트에서 호출 가능하게)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173", 
-        "http://localhost:3000", 
+        allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://localhost:4173", 
         "https://instagram-unfollower-frontend.vercel.app",
         "https://insta-dive.com",
         "https://www.insta-dive.com",
