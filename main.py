@@ -12,6 +12,8 @@ app.add_middleware(
         "http://localhost:3000", 
         "https://instagram-unfollower-frontend.vercel.app",
         "https://insta-dive.com",
+        "https://www.insta-dive.com",
+        "https://*.insta-dive.com",
         "https://*.vercel.app"
     ],
     allow_credentials=True,
